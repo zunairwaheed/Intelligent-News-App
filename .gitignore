@@ -1,0 +1,20 @@
+# General
+.DS_Store
+.env
+.env.local
+*.log
+
+# Frontend (NewsApp)
+NewsApp/node_modules/
+NewsApp/.expo/
+NewsApp/web-build/
+NewsApp/dist/
+
+# Backend (news-app-backend)
+news-app-backend/venv/
+news-app-backend/.venv/
+news-app-backend/__pycache__/
+news-app-backend/*.pyc
+news-app-backend/db.sqlite3
+news-app-backend/media/
+news-app-backend/staticfiles/
