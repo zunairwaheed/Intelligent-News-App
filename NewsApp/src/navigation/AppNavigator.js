@@ -21,6 +21,7 @@ const Tab = createBottomTabNavigator();
 const COLORS = { primary: '#1a73e8', gray: '#888' };
 
 function HomeTabs() {
+  const { user } = useAuth();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -39,25 +40,42 @@ function HomeTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: 'News' }} />
-      <Tab.Screen name="Submit" component={SubmitNewsScreen} options={{ tabBarLabel: 'Submit' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
+      <Tab.Screen
+        name="Submit"
+        component={SubmitNewsScreen}
+        options={{ tabBarLabel: 'Submit' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (!user) {
+              e.preventDefault();
+              navigation.navigate('Login', { redirectTo: 'Submit' });
+            }
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ tabBarLabel: 'Profile' }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            if (!user) {
+              e.preventDefault();
+              navigation.navigate('Login', { redirectTo: 'Profile' });
+            }
+          },
+        })}
+      />
     </Tab.Navigator>
   );
 }
 
-function AuthStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Signup" component={SignupScreen} />
-    </Stack.Navigator>
-  );
-}
-
-function AppStack() {
+function RootStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={HomeTabs} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="NewsDetail" component={NewsDetailScreen} />
       <Stack.Screen name="ChangeLocation" component={ChangeLocationScreen} />
       <Stack.Screen name="AdminReview" component={AdminReviewScreen} />
@@ -66,19 +84,15 @@ function AppStack() {
 }
 
 export default function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
+    return <View style={{ flex: 1, backgroundColor: '#fff' }} />;
   }
 
   return (
     <NavigationContainer>
-      {user ? <AppStack /> : <AuthStack />}
+      <RootStack />
     </NavigationContainer>
   );
 }

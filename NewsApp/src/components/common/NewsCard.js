@@ -17,9 +17,11 @@ export default function NewsCard({ item, onPress, isCommunity = false, userCount
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-      {imageUri && (
-        <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-      )}
+      <Image 
+        source={imageUri ? { uri: imageUri } : require('../../../assets/not-available.png')} 
+        style={styles.image} 
+        resizeMode="cover" 
+      />
       <View style={styles.body}>
         <View style={styles.topRow}>
           {isCommunity && <View style={styles.communityBadge}><Text style={styles.communityText}>Community</Text></View>}

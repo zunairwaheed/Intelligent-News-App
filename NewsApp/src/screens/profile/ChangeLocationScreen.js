@@ -343,8 +343,12 @@ export default function ChangeLocationScreen({ navigation, route }) {
         longitude: newLoc.longitude,
       });
     } catch { }
-    onSave?.(newLoc);
-    navigation.goBack();
+    // Navigate back with data instead of using a callback (serializable navigation fix)
+    navigation.navigate({
+      name: route.params?.returnTo || 'Home',
+      params: { updatedLocation: newLoc },
+      merge: true,
+    });
   };
 
   const detectCurrentLocation = async () => {
@@ -367,8 +371,12 @@ export default function ChangeLocationScreen({ navigation, route }) {
         };
         await saveLocation(newLoc);
         try { await api.patch('/api/auth/profile/', newLoc); } catch { }
-        onSave?.(newLoc);
-        navigation.goBack();
+        // Navigate back with data instead of using a callback (serializable navigation fix)
+        navigation.navigate({
+          name: route.params?.returnTo || 'Home',
+          params: { updatedLocation: newLoc },
+          merge: true,
+        });
       }
     } catch {
       Alert.alert('Error', 'Could not detect your location.');
@@ -379,139 +387,147 @@ export default function ChangeLocationScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#222" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Change Location</Text>
-      </View>
-
-      {/* Current location */}
-      {location?.city && (
-        <View style={styles.currentBox}>
-          <Ionicons name="location" size={16} color="#1a73e8" />
-          <Text style={styles.currentText}>
-            Current: {location.city} · {location.country_code?.toUpperCase()}
-          </Text>
-        </View>
-      )}
-
-      {/* Auto-detect */}
-      <TouchableOpacity style={styles.detectBtn} onPress={detectCurrentLocation} disabled={detecting}>
-        {detecting
-          ? <ActivityIndicator size="small" color="#1a73e8" />
-          : <Ionicons name="navigate" size={18} color="#1a73e8" />
-        }
-        <Text style={styles.detectText}>Use My Current Location</Text>
-      </TouchableOpacity>
-
-      <View style={styles.orRow}>
-        <View style={styles.line} />
-        <Text style={styles.orText}>OR SEARCH MANUALLY</Text>
-        <View style={styles.line} />
-      </View>
-
-      {/* ── Country Picker ── */}
-      <View style={styles.sectionLabel}>
-        <Ionicons name="flag-outline" size={14} color="#555" />
-        <Text style={styles.sectionLabelText}>Country (optional — filters search)</Text>
-      </View>
-      <TouchableOpacity style={styles.countryPickerBtn} onPress={() => setPickerVisible(true)}>
-        {selectedCountry ? (
-          <>
-            <Text style={styles.pickerFlag}>{selectedCountry.flag}</Text>
-            <Text style={styles.pickerName}>{selectedCountry.name}</Text>
-          </>
-        ) : (
-          <Text style={styles.pickerPlaceholder}>Select a country…</Text>
-        )}
-        <Ionicons name="chevron-down" size={18} color="#888" style={{ marginLeft: 'auto' }} />
-      </TouchableOpacity>
-
-      {/* ── City Search ── */}
-      <View style={styles.sectionLabel}>
-        <Ionicons name="search-outline" size={14} color="#555" />
-        <Text style={styles.sectionLabelText}>City or area</Text>
-      </View>
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Type a city to see suggestions..."
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={searchLocation}
-          returnKeyType="search"
-          placeholderTextColor="#aaa"
-        />
-        {query.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearBtn}
-            onPress={() => { setQuery(''); setSuggestions([]); setResults([]); }}
-          >
-            <Ionicons name="close-circle" size={18} color="#bbb" />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity style={styles.searchBtn} onPress={searchLocation}>
-          <Text style={styles.searchBtnText}>Go</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Live suggestions dropdown */}
-      {(loadingSuggestions || suggestions.length > 0) && (
-        <View style={styles.suggestionsBox}>
-          {loadingSuggestions ? (
-            <ActivityIndicator color="#1a73e8" style={{ padding: 12 }} />
-          ) : (
-            suggestions.map((item) => {
-              const countryCode = item.address?.country_code?.toLowerCase() || '';
-              const countryInfo = COUNTRIES.find(c => c.code === countryCode);
-              const cityName = item.address?.city || item.address?.town || item.address?.village || item.display_name.split(',')[0];
-              return (
-                <TouchableOpacity
-                  key={item.place_id?.toString()}
-                  style={styles.suggestionItem}
-                  onPress={() => selectLocation(item)}
-                >
-                  <Text style={styles.suggestionFlag}>{countryInfo?.flag || '📍'}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.suggestionCity} numberOfLines={1}>{cityName}</Text>
-                    <Text style={styles.suggestionSub} numberOfLines={1}>{item.display_name}</Text>
-                  </View>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={{ flex: 1 }}
+      >
+        <FlatList
+          data={results}
+          keyExtractor={(item) => item.place_id?.toString()}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            <View>
+              <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                  <Ionicons name="arrow-back" size={22} color="#222" />
                 </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
-      )}
-
-      {loading && <ActivityIndicator color="#1a73e8" style={{ marginTop: 20 }} />}
-
-      <FlatList
-        data={results}
-        keyExtractor={(item) => item.place_id?.toString()}
-        contentContainerStyle={styles.list}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => {
-          const countryCode = item.address?.country_code?.toLowerCase() || '';
-          const countryInfo = COUNTRIES.find(c => c.code === countryCode);
-          return (
-            <TouchableOpacity style={styles.resultItem} onPress={() => selectLocation(item)}>
-              <Text style={styles.resultFlag}>{countryInfo?.flag || '📍'}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.placeName} numberOfLines={1}>
-                  {item.address?.city || item.address?.town || item.address?.village || item.display_name.split(',')[0]}
-                </Text>
-                <Text style={styles.placeSubtitle} numberOfLines={1}>{item.display_name}</Text>
+                <Text style={styles.headerTitle}>Change Location</Text>
               </View>
-            </TouchableOpacity>
-          );
-        }}
-        ListEmptyComponent={
-          !loading && query.length > 0 ? (
-            <Text style={styles.emptyText}>No results. Try a different search.</Text>
-          ) : null
-        }
-      />
+
+              {/* Current location */}
+              {location?.city && (
+                <View style={styles.currentBox}>
+                  <Ionicons name="location" size={16} color="#1a73e8" />
+                  <Text style={styles.currentText}>
+                    Current: {location.city} · {location.country_code?.toUpperCase()}
+                  </Text>
+                </View>
+              )}
+
+              {/* Auto-detect */}
+              <TouchableOpacity style={styles.detectBtn} onPress={detectCurrentLocation} disabled={detecting}>
+                {detecting
+                  ? <ActivityIndicator size="small" color="#1a73e8" />
+                  : <Ionicons name="navigate" size={18} color="#1a73e8" />
+                }
+                <Text style={styles.detectText}>Use My Current Location</Text>
+              </TouchableOpacity>
+
+              <View style={styles.orRow}>
+                <View style={styles.line} />
+                <Text style={styles.orText}>OR SEARCH MANUALLY</Text>
+                <View style={styles.line} />
+              </View>
+
+              {/* ── Country Picker ── */}
+              <View style={styles.sectionLabel}>
+                <Ionicons name="flag-outline" size={14} color="#555" />
+                <Text style={styles.sectionLabelText}>Country (optional — filters search)</Text>
+              </View>
+              <TouchableOpacity style={styles.countryPickerBtn} onPress={() => setPickerVisible(true)}>
+                {selectedCountry ? (
+                  <>
+                    <Text style={styles.pickerFlag}>{selectedCountry.flag}</Text>
+                    <Text style={styles.pickerName}>{selectedCountry.name}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.pickerPlaceholder}>Select a country…</Text>
+                )}
+                <Ionicons name="chevron-down" size={18} color="#888" style={{ marginLeft: 'auto' }} />
+              </TouchableOpacity>
+
+              {/* ── City Search ── */}
+              <View style={styles.sectionLabel}>
+                <Ionicons name="search-outline" size={14} color="#555" />
+                <Text style={styles.sectionLabelText}>City or area</Text>
+              </View>
+              <View style={styles.searchRow}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Type a city to see suggestions..."
+                  value={query}
+                  onChangeText={setQuery}
+                  onSubmitEditing={searchLocation}
+                  returnKeyType="search"
+                  placeholderTextColor="#aaa"
+                />
+                {query.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.clearBtn}
+                    onPress={() => { setQuery(''); setSuggestions([]); setResults([]); }}
+                  >
+                    <Ionicons name="close-circle" size={18} color="#bbb" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={styles.searchBtn} onPress={searchLocation}>
+                  <Text style={styles.searchBtnText}>Go</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Live suggestions dropdown */}
+              {(loadingSuggestions || suggestions.length > 0) && (
+                <View style={styles.suggestionsBox}>
+                  {loadingSuggestions ? (
+                    <ActivityIndicator color="#1a73e8" style={{ padding: 12 }} />
+                  ) : (
+                    suggestions.map((item) => {
+                      const countryCode = item.address?.country_code?.toLowerCase() || '';
+                      const countryInfo = COUNTRIES.find(c => c.code === countryCode);
+                      const cityName = item.address?.city || item.address?.town || item.address?.village || item.display_name.split(',')[0];
+                      return (
+                        <TouchableOpacity
+                          key={item.place_id?.toString()}
+                          style={styles.suggestionItem}
+                          onPress={() => selectLocation(item)}
+                        >
+                          <Text style={styles.suggestionFlag}>{countryInfo?.flag || '📍'}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.suggestionCity} numberOfLines={1}>{cityName}</Text>
+                            <Text style={styles.suggestionSub} numberOfLines={1}>{item.display_name}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </View>
+              )}
+
+              {loading && <ActivityIndicator color="#1a73e8" style={{ marginTop: 20 }} />}
+            </View>
+          }
+          renderItem={({ item }) => {
+            const countryCode = item.address?.country_code?.toLowerCase() || '';
+            const countryInfo = COUNTRIES.find(c => c.code === countryCode);
+            return (
+              <TouchableOpacity style={styles.resultItem} onPress={() => selectLocation(item)}>
+                <Text style={styles.resultFlag}>{countryInfo?.flag || '📍'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.placeName} numberOfLines={1}>
+                    {item.address?.city || item.address?.town || item.address?.village || item.display_name.split(',')[0]}
+                  </Text>
+                  <Text style={styles.placeSubtitle} numberOfLines={1}>{item.display_name}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={
+            !loading && query.length > 0 ? (
+              <Text style={styles.emptyText}>No results. Try a different search.</Text>
+            ) : null
+          }
+        />
+      </KeyboardAvoidingView>
 
       <CountryPickerModal
         visible={pickerVisible}

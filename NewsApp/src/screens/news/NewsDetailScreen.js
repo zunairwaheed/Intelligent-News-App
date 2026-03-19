@@ -17,6 +17,7 @@ function formatDate(str) {
 
 export default function NewsDetailScreen({ route, navigation }) {
   const { item, isCommunity, userCountry } = route.params;
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   const imageUri = getImageUri(item, BASE_URL);
 
@@ -45,9 +46,11 @@ export default function NewsDetailScreen({ route, navigation }) {
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {imageUri && (
-          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-        )}
+        <Image 
+          source={imageUri ? { uri: imageUri } : require('../../../assets/not-available.png')} 
+          style={styles.image} 
+          resizeMode="cover" 
+        />
         <View style={styles.content}>
           {/* Badges */}
           <View style={styles.badgeRow}>
@@ -90,9 +93,19 @@ export default function NewsDetailScreen({ route, navigation }) {
           <View style={styles.divider} />
 
           {item.description && (
-            <Text style={styles.description}>
-              {item.description}
-            </Text>
+            <View>
+              <Text 
+                style={styles.description} 
+                numberOfLines={isExpanded ? undefined : 3}
+              >
+                {item.description}
+              </Text>
+              {item.description.length > 100 && (
+                <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={styles.showMoreBtn}>
+                  <Text style={styles.showMoreText}>{isExpanded ? 'Show Less' : 'Show More'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
 
           {/* {item.content && item.content !== item.description && (
@@ -154,4 +167,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 16, alignSelf: 'flex-start',
   },
   linkBtnText: { color: '#1a73e8', fontWeight: '600', marginLeft: 6 },
+  showMoreBtn: { marginTop: -8, marginBottom: 12, alignSelf: 'flex-start' },
+  showMoreText: { color: '#1a73e8', fontWeight: '600', fontSize: 13 },
 });

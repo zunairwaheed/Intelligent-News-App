@@ -5,6 +5,8 @@ from .views import (
     SubmitNewsView,
     MySubmissionsView,
     NewsDetailView,
+    DeleteNewsView,
+    NewsSuggestionView,
     PendingNewsListView,
     ReviewNewsView,
 )
@@ -15,7 +17,9 @@ urlpatterns = [
     path('community/', CommunityNewsFeedView.as_view(), name='community_news'),
     path('submit/', SubmitNewsView.as_view(), name='submit_news'),
     path('my-submissions/', MySubmissionsView.as_view(), name='my_submissions'),
+    path('delete/<int:pk>/', DeleteNewsView.as_view(), name='delete_news'),
     path('<int:pk>/', NewsDetailView.as_view(), name='news_detail'),
+    path('suggestions/', NewsSuggestionView.as_view(), name='news_suggestions'),
 
     # Admin endpoints
     path('admin/pending/', PendingNewsListView.as_view(), name='pending_news'),

@@ -11,7 +11,7 @@ from .services.newsdata_client import fetch_news_by_location
 
 class ExternalNewsView(APIView):
     """Proxy to newsdata.io — returns news based on country code and optional city query."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
 
     def get(self, request):
         country_code = request.query_params.get('country', 'us')
@@ -38,7 +38,7 @@ class ExternalNewsView(APIView):
 
 class CommunityNewsFeedView(generics.ListAPIView):
     """Returns all approved user-submitted news, filtered by country."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (AllowAny,)
     serializer_class = UserNewsListSerializer
 
     def get_queryset(self):
@@ -66,8 +66,58 @@ class MySubmissionsView(generics.ListAPIView):
 
 class NewsDetailView(generics.RetrieveAPIView):
     queryset = UserSubmittedNews.objects.filter(status=UserSubmittedNews.STATUS_APPROVED)
+    permission_classes = (AllowAny,)
+    serializer_class = UserNewsListSerializer
+
+
+class DeleteNewsView(generics.DestroyAPIView):
+    """Authenticated users can delete their own submissions."""
     permission_classes = (IsAuthenticated,)
     serializer_class = UserNewsListSerializer
+
+    def get_queryset(self):
+        return UserSubmittedNews.objects.filter(author=self.request.user)
+
+
+class NewsSuggestionView(APIView):
+    """Provides news title suggestions based on a query."""
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+        query = request.query_params.get('q', '').strip()
+        if not query or len(query) < 2:
+            return Response([])
+
+        # 1. Search community news (local database)
+        community_qs = UserSubmittedNews.objects.filter(
+            status=UserSubmittedNews.STATUS_APPROVED,
+            title__icontains=query
+        )[:5]
+        suggestions = [
+            {'title': item.title, 'article_id': item.id, 'type': 'community'}
+            for item in community_qs
+        ]
+
+        # 2. Search external news (limited)
+        try:
+            external_data = fetch_news_by_location(
+                query=query,
+                country_code=request.query_params.get('country', 'us'),
+                language='en'
+            )
+            for item in (external_data.get('results', [])[:5]):
+                if item.get('title'):
+                    suggestions.append({
+                        'title': item.get('title'),
+                        'article_id': item.get('article_id'),
+                        'type': 'external',
+                        'link': item.get('link'),
+                        'source_id': item.get('source_id')
+                    })
+        except:
+            pass
+
+        return Response(suggestions)
 
 
 # ── Admin-only: Review submitted news ──────────────────────────────────────
