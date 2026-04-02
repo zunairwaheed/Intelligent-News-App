@@ -1,27 +1,13 @@
 from django.urls import path
-from .views import (
-    ExternalNewsView,
-    CommunityNewsFeedView,
-    SubmitNewsView,
-    MySubmissionsView,
-    NewsDetailView,
-    DeleteNewsView,
-    NewsSuggestionView,
-    PendingNewsListView,
-    ReviewNewsView,
-)
+from . import views
 
 urlpatterns = [
     # Public / user endpoints
-    path('external/', ExternalNewsView.as_view(), name='external_news'),
-    path('community/', CommunityNewsFeedView.as_view(), name='community_news'),
-    path('submit/', SubmitNewsView.as_view(), name='submit_news'),
-    path('my-submissions/', MySubmissionsView.as_view(), name='my_submissions'),
-    path('delete/<int:pk>/', DeleteNewsView.as_view(), name='delete_news'),
-    path('<int:pk>/', NewsDetailView.as_view(), name='news_detail'),
-    path('suggestions/', NewsSuggestionView.as_view(), name='news_suggestions'),
-
-    # Admin endpoints
-    path('admin/pending/', PendingNewsListView.as_view(), name='pending_news'),
-    path('admin/review/<int:pk>/', ReviewNewsView.as_view(), name='review_news'),
+    path('external/', views.external_news, name='external_news'),
+    path('community/', views.community_news_feed, name='community_news'),
+    path('submit/', views.submit_news, name='submit_news'),
+    path('my-submissions/', views.my_submissions, name='my_submissions'),
+    path('delete/<int:pk>/', views.delete_news, name='delete_news'),
+    path('<int:pk>/', views.news_detail, name='news_detail'),
+    path('suggestions/', views.news_suggestions, name='news_suggestions'),
 ]

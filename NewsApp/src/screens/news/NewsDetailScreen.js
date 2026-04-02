@@ -92,32 +92,23 @@ export default function NewsDetailScreen({ route, navigation }) {
 
           <View style={styles.divider} />
 
-          {item.description && (
+          {/* Description or AI Content */}
+          {(item.description || item.content) ? (
             <View>
               <Text 
                 style={styles.description} 
-                numberOfLines={isExpanded ? undefined : 3}
+                numberOfLines={isExpanded ? undefined : 5}
               >
-                {item.description}
+                {(item.description || item.content || '').replace(/[*#_`]+/g, '').trim()}
               </Text>
-              {item.description.length > 100 && (
+              {(item.description || item.content || '').length > 200 && (
                 <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={styles.showMoreBtn}>
                   <Text style={styles.showMoreText}>{isExpanded ? 'Show Less' : 'Show More'}</Text>
                 </TouchableOpacity>
               )}
             </View>
-          )}
-
-          {/* {item.content && item.content !== item.description && (
-            <Text style={styles.body}>
-              {item.content}
-            </Text>
-          )} */}
-
-          {!item.content && !item.description && (
-            <Text style={styles.body}>
-              No content available.
-            </Text>
+          ) : (
+            <Text style={styles.body}>No content available.</Text>
           )}
 
           {item.link && (

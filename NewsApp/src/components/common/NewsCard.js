@@ -46,7 +46,7 @@ export default function NewsCard({ item, onPress, isCommunity = false, userCount
           </Text>
         </View>
 
-        {item.description && (
+        {(item.description || item.content) && (
           <Text style={styles.desc} numberOfLines={2}>{item.description || item.content}</Text>
         )}
       </View>

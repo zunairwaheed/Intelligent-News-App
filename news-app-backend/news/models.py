@@ -3,16 +3,6 @@ from django.conf import settings
 
 
 class UserSubmittedNews(models.Model):
-    STATUS_PENDING = 'pending'
-    STATUS_APPROVED = 'approved'
-    STATUS_REJECTED = 'rejected'
-
-    STATUS_CHOICES = [
-        (STATUS_PENDING, 'Pending Review'),
-        (STATUS_APPROVED, 'Approved'),
-        (STATUS_REJECTED, 'Rejected'),
-    ]
-
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -28,16 +18,9 @@ class UserSubmittedNews(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
 
-    # Verification
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
-    rejection_reason = models.TextField(blank=True)
-    reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='reviewed_news'
-    )
-    reviewed_at = models.DateTimeField(null=True, blank=True)
+    # ML Fields
+    embedding_vector = models.BinaryField(null=True, blank=True)
+    is_ai_generated = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -48,4 +31,4 @@ class UserSubmittedNews(models.Model):
         verbose_name_plural = 'User Submitted News'
 
     def __str__(self):
-        return f"{self.title} ({self.status})"
+        return f"{self.title} {'(AI)' if self.is_ai_generated else ''}"

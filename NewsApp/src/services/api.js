@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Change this to your computer's local IP when testing on a physical device
 // e.g. 'http://192.168.1.10:8000'
-export const BASE_URL = 'http://192.168.10.37:8000'; // Physical device — use machine's LAN IP
+export const BASE_URL = 'http://192.168.10.61:8000'; // Physical device — use machine's LAN IP
 
 const api = axios.create({
   baseURL: BASE_URL,

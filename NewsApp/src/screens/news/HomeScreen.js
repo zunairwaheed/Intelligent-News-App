@@ -150,7 +150,7 @@ export default function HomeScreen({ navigation, route }) {
       let data;
       const currentQuery = queryOverride !== null ? queryOverride : search.trim();
       if (tab === 'Latest') {
-        const params = { country: location.country_code };
+        const params = { country: location?.country_code || 'uk' };
         if (currentQuery) params.q = currentQuery;
         if (selectedCategory !== 'All') params.category = selectedCategory.toLowerCase();
         if (filterDomain.trim()) params.domain = filterDomain.trim();
@@ -179,10 +179,14 @@ export default function HomeScreen({ navigation, route }) {
           setAvailableChannels(prev => [...new Set([...prev, ...channels])].slice(0, 15));
         }
       } else {
-        const params = { country: location.country_code };
+        const params = { country: location?.country_code || 'uk' };
         if (currentQuery) params.q = currentQuery;
         const res = await api.get('/api/news/community/', { params });
-        const newItems = res.data.results || [];
+        // Strip markdown from AI-generated content
+        const newItems = (res.data.results || []).map(item => ({
+          ...item,
+          content: item.content ? item.content.replace(/[*#_`]+/g, '').trim() : '',
+        }));
         const combined = append ? [...news, ...newItems] : newItems;
         // Deduplicate by article_id or id
         const seen = new Set();
@@ -194,7 +198,7 @@ export default function HomeScreen({ navigation, route }) {
           return true;
         });
         setNews(unique);
-        setTotalResults(res.data.count || res.data.length || 0);
+        setTotalResults(res.data.totalResults || 0);
         setNextPage(null);
       }
     } catch {
@@ -249,7 +253,7 @@ export default function HomeScreen({ navigation, route }) {
     setShowSuggestions(true);
     try {
       const res = await api.get('/api/news/suggestions/', {
-        params: { q: search, country: location.country_code }
+        params: { q: search, country: location?.country_code || 'uk' }
       });
       setSuggestions(res.data);
     } catch {
@@ -480,13 +484,13 @@ export default function HomeScreen({ navigation, route }) {
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <Text style={styles.filterLabel}>News Channel (Domain)</Text>
               <TextInput style={styles.filterInput} placeholder="e.g. bbc.co.uk" value={draftDomain} onChangeText={setDraftDomain} autoCapitalize="none" />
-              
+
               <View style={styles.suggestedChannelsWrapper}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestedChannelsScroll}>
                   {[...new Set([...availableChannels, ...SUGGESTED_CHANNELS])].map((ch) => (
-                    <TouchableOpacity 
-                      key={ch} 
-                      style={[styles.channelChip, draftDomain === ch && styles.channelChipActive]} 
+                    <TouchableOpacity
+                      key={ch}
+                      style={[styles.channelChip, draftDomain === ch && styles.channelChipActive]}
                       onPress={() => setDraftDomain(ch)}
                     >
                       <Text style={[styles.channelChipText, draftDomain === ch && styles.channelChipTextActive]}>{ch}</Text>

@@ -334,15 +334,17 @@ export default function ChangeLocationScreen({ navigation, route }) {
     setSuggestions([]);
     setResults([]);
     setQuery('');
-    await saveLocation(newLoc);
-    try {
-      await api.patch('/api/auth/profile/', {
-        city: newLoc.city,
-        country_code: newLoc.country_code,
-        latitude: newLoc.latitude,
-        longitude: newLoc.longitude,
-      });
-    } catch { }
+    if (!route.params?.skipProfileUpdate) {
+      await saveLocation(newLoc);
+      try {
+        await api.patch('/api/auth/profile/', {
+          city: newLoc.city,
+          country_code: newLoc.country_code,
+          latitude: newLoc.latitude,
+          longitude: newLoc.longitude,
+        });
+      } catch { }
+    }
     // Navigate back with data instead of using a callback (serializable navigation fix)
     navigation.navigate({
       name: route.params?.returnTo || 'Home',
@@ -369,8 +371,10 @@ export default function ChangeLocationScreen({ navigation, route }) {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         };
-        await saveLocation(newLoc);
-        try { await api.patch('/api/auth/profile/', newLoc); } catch { }
+        if (!route.params?.skipProfileUpdate) {
+          await saveLocation(newLoc);
+          try { await api.patch('/api/auth/profile/', newLoc); } catch { }
+        }
         // Navigate back with data instead of using a callback (serializable navigation fix)
         navigation.navigate({
           name: route.params?.returnTo || 'Home',
