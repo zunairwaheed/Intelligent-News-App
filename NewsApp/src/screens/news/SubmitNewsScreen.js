@@ -120,7 +120,7 @@ const CountryPickerModal = ({ visible, onClose, onSelect }) => {
 
 export default function SubmitNewsScreen({ navigation }) {
   const [form, setForm] = useState({
-    title: '', content: '', location_name: '', country_code: 'us',
+    title: '', content: '', location_name: '', country_code: 'gb',
   });
   
   const [image, setImage] = useState(null);
@@ -128,7 +128,7 @@ export default function SubmitNewsScreen({ navigation }) {
   const [submitted, setSubmitted] = useState(false);
 
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES.find(c => c.code === 'us'));
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES.find(c => c.code === 'gb'));
   
   const [cityQuery, setCityQuery] = useState('');
   const [citySuggestions, setCitySuggestions] = useState([]);
@@ -240,7 +240,7 @@ export default function SubmitNewsScreen({ navigation }) {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setSubmitted(true);
-      setForm({ title: '', content: '', location_name: '', country_code: 'us' });
+      setForm({ title: '', content: '', location_name: '', country_code: 'gb' });
       setCityQuery('');
       setImage(null);
     } catch (err) {

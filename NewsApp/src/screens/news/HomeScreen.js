@@ -15,7 +15,6 @@ import { useAuth } from '../../context/AuthContext';
 
 const TABS = ['Latest', 'Community'];
 const CATEGORIES = ['All', 'Business', 'Entertainment', 'Health', 'Science', 'Sports', 'Technology', 'Top', 'World'];
-const SUGGESTED_CHANNELS = ['bbc.co.uk', 'cnn.com', 'reuters.com', 'aljazeera.com', 'theguardian.com', 'nytimes.com', 'bloomberg.com', 'techcrunch.com'];
 const HEADER_MAX_HEIGHT = 330;
 
 // Memoized NewsCard for performance
@@ -176,7 +175,11 @@ export default function HomeScreen({ navigation, route }) {
 
         if (data.results) {
           const channels = [...new Set(data.results.map(item => item.source_id).filter(Boolean))];
-          setAvailableChannels(prev => [...new Set([...prev, ...channels])].slice(0, 15));
+          if (append) {
+            setAvailableChannels(prev => [...new Set([...prev, ...channels])].slice(0, 15));
+          } else {
+            setAvailableChannels(channels.slice(0, 15));
+          }
         }
       } else {
         const params = { country: location?.country_code || 'uk' };
@@ -483,11 +486,11 @@ export default function HomeScreen({ navigation, route }) {
             </View>
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <Text style={styles.filterLabel}>News Channel (Domain)</Text>
-              <TextInput style={styles.filterInput} placeholder="e.g. bbc.co.uk" value={draftDomain} onChangeText={setDraftDomain} autoCapitalize="none" />
+              <TextInput style={styles.filterInput} placeholder="e.g. bbc" value={draftDomain} onChangeText={setDraftDomain} autoCapitalize="none" />
 
               <View style={styles.suggestedChannelsWrapper}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestedChannelsScroll}>
-                  {[...new Set([...availableChannels, ...SUGGESTED_CHANNELS])].map((ch) => (
+                  {availableChannels.map((ch) => (
                     <TouchableOpacity
                       key={ch}
                       style={[styles.channelChip, draftDomain === ch && styles.channelChipActive]}
