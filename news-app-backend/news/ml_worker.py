@@ -47,7 +47,7 @@ def check_for_synthesis(new_article):
     if new_article.is_ai_generated:
         return
         
-    threshold = 0.75 # Adjusted threshold for Gemini embeddings
+    threshold = 0.90 # Adjusted threshold for tighter clustering with Gemini embeddings
     new_vec = np.frombuffer(new_article.embedding_vector, dtype=np.float32).reshape(1, -1)
     
     # 1. Check if an AI Master article already exists for this event
@@ -115,6 +115,13 @@ def synthesize_articles(articles):
             title = lines[0]
             content = "\n".join(lines[1:])
             
+        # Find the first available image from the source articles
+        image_to_use = None
+        for a in articles:
+            if a.image:
+                image_to_use = a.image
+                break
+                
         # Create the AI Generated Master Article
         with transaction.atomic():
             master = UserSubmittedNews.objects.create(
@@ -123,7 +130,8 @@ def synthesize_articles(articles):
                 author=articles[0].author, 
                 location_name=articles[0].location_name,
                 country_code=articles[0].country_code,
-                is_ai_generated=True
+                is_ai_generated=True,
+                image=image_to_use
             )
             print(f"AI Master Article created via Gemini: {master.id}")
             

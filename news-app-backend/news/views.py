@@ -16,7 +16,12 @@ from .ml_worker import process_news_ml
 @permission_classes([AllowAny])
 def external_news(request):
     """Proxy to newsdata.io — returns news based on country code and optional city query."""
-    country_code = request.query_params.get('country', 'us')
+    country_code = request.query_params.get('country')
+    if not country_code:
+        if request.user.is_authenticated and getattr(request.user, 'country_code', None):
+            country_code = request.user.country_code
+        else:
+            country_code = 'gb'
     query = request.query_params.get('q', '')
     page = request.query_params.get('page', None)
     language = request.query_params.get('language', 'en')
@@ -63,8 +68,16 @@ def community_news_feed(request):
             qs = qs.filter(location_name__iexact=user_city)
         if user_country:
             qs = qs.filter(country_code__iexact=user_country)
+            
+        # Fallback if authenticated user has no location set
+        if not user_city and not user_country:
+            qs = qs.filter(country_code__iexact='gb')
+            
+    # 3. Fallback for unauthenticated users when no override was provided
+    else:
+        qs = qs.filter(country_code__iexact='gb')
     
-    # 3. Handle Pagination manually for @api_view
+    # 4. Handle Pagination manually for @api_view
     paginator = PageNumberPagination()
     page = paginator.paginate_queryset(qs, request)
     
@@ -89,22 +102,30 @@ def community_news_feed(request):
 @permission_classes([IsAuthenticated])
 def submit_news(request):
     """Authenticated users submit news; defaults to their profile location if blank."""
-    data = request.data.copy()
-    
-    # Defaulting to profile location if not provided
-    if not data.get('location_name') and request.user.city:
-        data['location_name'] = request.user.city
-    if not data.get('country_code') and request.user.country_code:
-        data['country_code'] = request.user.country_code
-
-    serializer = NewsSubmitSerializer(data=data, context={'request': request})
+    serializer = NewsSubmitSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
-        article = serializer.save()
+        save_kwargs = {}
+        
+        # Defaulting to profile location if not provided manually
+        location_name = serializer.validated_data.get('location_name')
+        if not location_name and request.user.city:
+            save_kwargs['location_name'] = request.user.city
+        elif not location_name:
+            save_kwargs['location_name'] = 'Unknown' # Safety fallback
+            
+        country_code = serializer.validated_data.get('country_code')
+        if not country_code and request.user.country_code:
+            save_kwargs['country_code'] = request.user.country_code
+        elif not country_code:
+            save_kwargs['country_code'] = 'gb' # Default fallback
+            
+        article = serializer.save(**save_kwargs)
         
         # Fire and forget: Start ML background thread
         threading.Thread(target=process_news_ml, args=(article.id,), daemon=True).start()
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    print("Submit News Validation Errors:", serializer.errors)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -178,9 +199,16 @@ def news_suggestions(request):
 
     # 2. Search external news (limited)
     try:
+        country_code = request.query_params.get('country')
+        if not country_code:
+            if request.user.is_authenticated and getattr(request.user, 'country_code', None):
+                country_code = request.user.country_code
+            else:
+                country_code = 'gb'
+
         external_data = fetch_news_by_location(
             query=query,
-            country_code=request.query_params.get('country', 'us'),
+            country_code=country_code,
             language='en'
         )
         for item in (external_data.get('results', [])[:5]):

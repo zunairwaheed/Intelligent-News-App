@@ -7,7 +7,8 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api, { BASE_URL } from '../../services/api';
 
 const COUNTRIES = [
   { code: 'af', name: 'Afghanistan', flag: '🇦🇫' },
@@ -141,7 +142,7 @@ export default function SubmitNewsScreen({ navigation }) {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!cityQuery.trim() || cityQuery.length < 2) { 
+    if (!cityQuery.trim() || cityQuery.length < 2 || cityQuery === form.location_name) { 
       setCitySuggestions([]); 
       setShowSuggestions(false);
       return; 
@@ -163,7 +164,7 @@ export default function SubmitNewsScreen({ navigation }) {
       }
     }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [cityQuery, selectedCountry]);
+  }, [cityQuery, selectedCountry, form.location_name]);
 
   const handleSelectCity = (place) => {
     const addr = place.address || {};
@@ -210,7 +211,7 @@ export default function SubmitNewsScreen({ navigation }) {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, quality: 0.8,
+      allowsEditing: true, quality: 0.8, base64: true,
     });
     if (!result.canceled) setImage(result.assets[0]);
   };
@@ -222,23 +223,32 @@ export default function SubmitNewsScreen({ navigation }) {
     }
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('title', form.title.trim());
-      formData.append('content', form.content.trim());
-      formData.append('location_name', form.location_name.trim());
-      formData.append('country_code', form.country_code.trim() || selectedCountry.code);
+      const payload = {
+        title: form.title.trim(),
+        content: form.content.trim(),
+        location_name: form.location_name.trim(),
+        country_code: form.country_code.trim() || selectedCountry.code,
+      };
 
-      if (image) {
-        formData.append('image', {
-          uri: image.uri,
-          name: 'news_image.jpg',
-          type: 'image/jpeg',
-        });
+      if (image && image.base64) {
+        payload.image = 'data:image/jpeg;base64,' + image.base64;
       }
 
-      await api.post('/api/news/submit/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const token = await AsyncStorage.getItem('@access_token');
+      const response = await fetch(`${BASE_URL}/api/news/submit/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw { response: { data: errorData } };
+      }
       setSubmitted(true);
       setForm({ title: '', content: '', location_name: '', country_code: 'gb' });
       setCityQuery('');
@@ -279,7 +289,7 @@ export default function SubmitNewsScreen({ navigation }) {
           <Text style={styles.headerSub}>Your report will be reviewed before publishing</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="always">
           <View style={styles.noticeBox}>
             <Ionicons name="shield-checkmark-outline" size={18} color="#f9a825" />
             <Text style={styles.noticeText}>All submissions are reviewed by our team before going live.</Text>

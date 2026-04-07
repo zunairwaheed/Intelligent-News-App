@@ -27,7 +27,7 @@ class User(AbstractUser):
 
     # Location preferences
     city = models.CharField(max_length=100, blank=True)
-    country_code = models.CharField(max_length=5, blank=True, default='us')
+    country_code = models.CharField(max_length=5, blank=True, default='gb')
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
 
