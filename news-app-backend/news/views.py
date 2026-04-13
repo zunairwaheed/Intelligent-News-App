@@ -195,6 +195,7 @@ def news_suggestions(request):
             'is_ai_generated': item.is_ai_generated,
             'created_at': str(item.created_at),
             'author_name': item.author.username if item.author else '',
+            'image': request.build_absolute_uri(item.image.url) if item.image else None,
         })
 
     # 2. Search external news (limited)
@@ -218,7 +219,8 @@ def news_suggestions(request):
                     'article_id': item.get('article_id'),
                     'type': 'external',
                     'link': item.get('link'),
-                    'source_id': item.get('source_id')
+                    'source_id': item.get('source_id'),
+                    'image_url': item.get('image_url'),
                 })
     except:
         pass

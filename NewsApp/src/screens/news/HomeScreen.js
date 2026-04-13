@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, Alert, TextInput, SafeAreaView,
-  ScrollView, Modal, Animated, Keyboard
+  ScrollView, Modal, Animated, Keyboard, Image
 } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -459,6 +459,9 @@ export default function HomeScreen({ navigation, route }) {
                   onPress={() => handleSuggestionSelect(item)}
                 >
                   <Ionicons name={item.type === 'community' ? 'people-outline' : 'globe-outline'} size={14} color="#666" style={{ marginRight: 10 }} />
+                  { (item.image || item.image_url) ? (
+                    <Image source={{ uri: item.image || item.image_url }} style={{ width: 30, height: 30, borderRadius: 4, marginRight: 10 }} />
+                  ) : null }
                   <Text style={styles.suggestionText} numberOfLines={1}>{item.title}</Text>
                 </TouchableOpacity>
               )}
